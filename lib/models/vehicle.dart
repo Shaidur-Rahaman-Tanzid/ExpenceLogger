@@ -11,6 +11,7 @@ class Vehicle {
   String? fuelType; // Petrol, Diesel, Electric, Hybrid
   String? vehicleType; // Car, Bike, Truck, etc.
   double? tankCapacity; // Tank capacity in liters
+  double? fuelEfficiency; // Expected fuel efficiency in km/L (user-provided)
   String? imagePath;
   String? note;
   DateTime createdAt;
@@ -29,6 +30,7 @@ class Vehicle {
     this.fuelType,
     this.vehicleType,
     this.tankCapacity,
+    this.fuelEfficiency,
     this.imagePath,
     this.note,
     DateTime? createdAt,
@@ -51,6 +53,7 @@ class Vehicle {
       'fuelType': fuelType,
       'vehicleType': vehicleType,
       'tankCapacity': tankCapacity,
+      'fuelEfficiency': fuelEfficiency,
       'imagePath': imagePath,
       'note': note,
       'createdAt': createdAt.toIso8601String(),
@@ -79,6 +82,9 @@ class Vehicle {
       tankCapacity: map['tankCapacity'] != null
           ? (map['tankCapacity'] as num).toDouble()
           : null,
+      fuelEfficiency: map['fuelEfficiency'] != null
+          ? (map['fuelEfficiency'] as num).toDouble()
+          : null,
       imagePath: map['imagePath'] as String?,
       note: map['note'] as String?,
       createdAt: DateTime.parse(map['createdAt'] as String),
@@ -100,6 +106,7 @@ class Vehicle {
     String? fuelType,
     String? vehicleType,
     double? tankCapacity,
+    double? fuelEfficiency,
     String? imagePath,
     String? note,
     DateTime? createdAt,
@@ -118,6 +125,7 @@ class Vehicle {
       fuelType: fuelType ?? this.fuelType,
       vehicleType: vehicleType ?? this.vehicleType,
       tankCapacity: tankCapacity ?? this.tankCapacity,
+      fuelEfficiency: fuelEfficiency ?? this.fuelEfficiency,
       imagePath: imagePath ?? this.imagePath,
       note: note ?? this.note,
       createdAt: createdAt ?? this.createdAt,

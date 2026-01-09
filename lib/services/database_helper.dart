@@ -16,7 +16,7 @@ class DatabaseHelper {
 
   // Database configuration
   static const String _databaseName = 'money_mate.db';
-  static const int _databaseVersion = 7; // Incremented for tankCapacity column
+  static const int _databaseVersion = 9; // Added fuelEfficiency column
   static const String _tableName = 'expenses';
   static const String _budgetTable = 'budgets';
   static const String _goalsTable = 'saving_goals';
@@ -92,12 +92,48 @@ class DatabaseHelper {
         fuelType TEXT,
         vehicleType TEXT,
         tankCapacity REAL,
+        fuelEfficiency REAL,
         imagePath TEXT,
         note TEXT,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )
     ''');
+
+    // Create ODO entries table
+    await db.execute('''
+      CREATE TABLE $_odoEntriesTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vehicleId INTEGER NOT NULL,
+        odometerReading REAL NOT NULL,
+        recordedAt TEXT NOT NULL,
+        note TEXT,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        FOREIGN KEY (vehicleId) REFERENCES $_vehicleTable (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // Create fuel entries table
+    await db.execute('''
+      CREATE TABLE $_fuelEntriesTable (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vehicleId INTEGER NOT NULL,
+        fuelAmount REAL NOT NULL,
+        fuelCost REAL NOT NULL,
+        odometerReading REAL NOT NULL,
+        isFullTank INTEGER NOT NULL DEFAULT 1,
+        refuelDate TEXT NOT NULL,
+        note TEXT,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        FOREIGN KEY (vehicleId) REFERENCES $_vehicleTable (id) ON DELETE CASCADE
+      )
+    ''');
+
+    // Create indexes for better query performance
+    await db.execute('CREATE INDEX idx_odo_vehicle ON $_odoEntriesTable(vehicleId)');
+    await db.execute('CREATE INDEX idx_fuel_vehicle ON $_fuelEntriesTable(vehicleId)');
   }
 
   // Upgrade database
@@ -217,6 +253,56 @@ class DatabaseHelper {
         ''');
       } catch (e) {
         print('tankCapacity column might already exist: $e');
+      }
+    }
+    if (oldVersion < 8) {
+      // Ensure odo_entries and fuel_entries tables exist
+      // This handles cases where tables might have been missed in onCreate
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS $_odoEntriesTable (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vehicleId INTEGER NOT NULL,
+            odometerReading REAL NOT NULL,
+            recordedAt TEXT NOT NULL,
+            note TEXT,
+            createdAt TEXT NOT NULL,
+            updatedAt TEXT NOT NULL,
+            FOREIGN KEY (vehicleId) REFERENCES $_vehicleTable (id) ON DELETE CASCADE
+          )
+        ''');
+        
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS $_fuelEntriesTable (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            vehicleId INTEGER NOT NULL,
+            fuelAmount REAL NOT NULL,
+            fuelCost REAL NOT NULL,
+            odometerReading REAL NOT NULL,
+            isFullTank INTEGER NOT NULL DEFAULT 1,
+            refuelDate TEXT NOT NULL,
+            note TEXT,
+            createdAt TEXT NOT NULL,
+            updatedAt TEXT NOT NULL,
+            FOREIGN KEY (vehicleId) REFERENCES $_vehicleTable (id) ON DELETE CASCADE
+          )
+        ''');
+        
+        // Create indexes if they don't exist
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_odo_vehicle ON $_odoEntriesTable(vehicleId)');
+        await db.execute('CREATE INDEX IF NOT EXISTS idx_fuel_vehicle ON $_fuelEntriesTable(vehicleId)');
+      } catch (e) {
+        print('Error creating odo/fuel tables in upgrade: $e');
+      }
+    }
+    if (oldVersion < 9) {
+      try {
+        // Add fuelEfficiency column to vehicles table
+        await db.execute('''
+          ALTER TABLE $_vehicleTable ADD COLUMN fuelEfficiency REAL
+        ''');
+      } catch (e) {
+        print('fuelEfficiency column might already exist: $e');
       }
     }
   }
@@ -435,10 +521,12 @@ class DatabaseHelper {
   Future<int> insertVehicle(Vehicle vehicle) async {
     final db = await database;
     
-    // Check for duplicate registration number
-    final exists = await isRegistrationNumberExists(vehicle.registrationNumber);
-    if (exists) {
-      throw Exception('A vehicle with registration number ${vehicle.registrationNumber} already exists');
+    // Check for duplicate registration number only if it's not empty
+    if (vehicle.registrationNumber.trim().isNotEmpty) {
+      final exists = await isRegistrationNumberExists(vehicle.registrationNumber);
+      if (exists) {
+        throw Exception('A vehicle with registration number ${vehicle.registrationNumber} already exists');
+      }
     }
     
     return await db.insert(
@@ -479,13 +567,15 @@ class DatabaseHelper {
   Future<int> updateVehicle(Vehicle vehicle) async {
     final db = await database;
     
-    // Check for duplicate registration number (excluding current vehicle)
-    final exists = await isRegistrationNumberExists(
-      vehicle.registrationNumber, 
-      excludeId: vehicle.id,
-    );
-    if (exists) {
-      throw Exception('A vehicle with registration number ${vehicle.registrationNumber} already exists');
+    // Check for duplicate registration number only if it's not empty (excluding current vehicle)
+    if (vehicle.registrationNumber.trim().isNotEmpty) {
+      final exists = await isRegistrationNumberExists(
+        vehicle.registrationNumber, 
+        excludeId: vehicle.id,
+      );
+      if (exists) {
+        throw Exception('A vehicle with registration number ${vehicle.registrationNumber} already exists');
+      }
     }
     
     return await db.update(

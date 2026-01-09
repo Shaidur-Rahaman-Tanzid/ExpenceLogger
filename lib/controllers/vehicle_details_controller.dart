@@ -297,10 +297,18 @@ class VehicleDetailsController extends GetxController {
   void calculateFuelStatistics() {
     print('🔵 calculateFuelStatistics called');
     print('🔵 fuelEntries count: ${fuelEntries.length}');
+    print('🔵 User-provided fuel efficiency: ${vehicle.value?.fuelEfficiency} km/L');
     
     if (fuelEntries.isEmpty) {
       print('⚠️ No fuel entries, resetting all stats');
-      averageFuelConsumption.value = 0.0;
+      // Use user-provided fuel efficiency if available
+      if (vehicle.value?.fuelEfficiency != null && vehicle.value!.fuelEfficiency! > 0) {
+        // Convert km/L to L/100km
+        averageFuelConsumption.value = 100 / vehicle.value!.fuelEfficiency!;
+        print('✅ Using user-provided efficiency: ${averageFuelConsumption.value} L/100km');
+      } else {
+        averageFuelConsumption.value = 0.0;
+      }
       estimatedFuelLevel.value = 0.0;
       estimatedRange.value = 0.0;
       totalFuelCost.value = 0.0;
@@ -344,47 +352,62 @@ class VehicleDetailsController extends GetxController {
         averageFuelConsumption.value = (totalFuel / totalDistance) * 100;
         print('✅ Average consumption: ${averageFuelConsumption.value} L/100km');
       }
-    } else if (sortedEntries.isNotEmpty && odoEntries.isNotEmpty) {
-      // Method 2: Estimate from ODO entries and fuel entry (fallback for single entry)
-      print('⚠️ Using fallback: ODO entries + single fuel entry');
+    } else if (sortedEntries.length >= 2) {
+      // Method 2: Calculate from any two consecutive fuel entries (even if not full tank)
+      print('⚠️ Using fallback: consecutive fuel entries');
       
-      final latestFuel = sortedEntries.last;
-      final currentOdo = vehicle.value?.currentMileage ?? latestFuel.odometerReading;
+      double totalDistance = 0.0;
+      double totalFuel = 0.0;
+      int validSegments = 0;
       
-      // Find ODO entries before this fuel entry
-      final odoBeforeFuel = odoEntries
-          .where((odo) => odo.recordedAt.isBefore(latestFuel.refuelDate) || 
-                         odo.recordedAt.isAtSameMomentAs(latestFuel.refuelDate))
-          .toList();
-      
-      if (odoBeforeFuel.isNotEmpty) {
-        // Sort by date
-        odoBeforeFuel.sort((a, b) => a.recordedAt.compareTo(b.recordedAt));
-        final earliestOdo = odoBeforeFuel.first.odometerReading;
-        final distanceTraveled = latestFuel.odometerReading - earliestOdo;
+      for (int i = 1; i < sortedEntries.length; i++) {
+        final distance = sortedEntries[i].odometerReading - sortedEntries[i - 1].odometerReading;
+        final fuel = sortedEntries[i].fuelAmount;
         
-        print('📏 Earliest ODO: $earliestOdo, Fuel ODO: ${latestFuel.odometerReading}');
-        print('📏 Distance traveled: $distanceTraveled km, Fuel used: ${latestFuel.fuelAmount} L');
+        print('📊 Entry $i: distance=$distance, fuel=$fuel');
         
-        if (distanceTraveled > 0 && latestFuel.fuelAmount > 0) {
-          averageFuelConsumption.value = (latestFuel.fuelAmount / distanceTraveled) * 100;
-          print('✅ Estimated consumption (from ODO): ${averageFuelConsumption.value} L/100km');
-        }
-      } else {
-        // No ODO history, use a default assumption if there's distance since fuel entry
-        final distanceSinceLastFill = currentOdo - latestFuel.odometerReading;
-        if (distanceSinceLastFill > 0 && latestFuel.fuelAmount > 0) {
-          // Estimate: if we know fuel added and distance traveled since
-          final fuelRemaining = latestFuel.fuelAmount - 
-              ((distanceSinceLastFill / 100) * 8.0); // Assume 8L/100km temporarily
-          
-          if (fuelRemaining > 0 && fuelRemaining < latestFuel.fuelAmount) {
-            final fuelUsed = latestFuel.fuelAmount - fuelRemaining;
-            averageFuelConsumption.value = (fuelUsed / distanceSinceLastFill) * 100;
-            print('✅ Estimated consumption (from current ODO): ${averageFuelConsumption.value} L/100km');
-          }
+        // Only use if distance is reasonable (more than 0, less than 2000km between fills)
+        if (distance > 0 && distance < 2000) {
+          totalDistance += distance;
+          totalFuel += fuel;
+          validSegments++;
         }
       }
+      
+      print('� Total distance: $totalDistance, Total fuel for calc: $totalFuel, Valid segments: $validSegments');
+      
+      if (totalDistance > 0 && validSegments > 0) {
+        averageFuelConsumption.value = (totalFuel / totalDistance) * 100;
+        print('✅ Average consumption (from consecutive entries): ${averageFuelConsumption.value} L/100km');
+      }
+    } else if (sortedEntries.length == 1) {
+      // Method 3: Single fuel entry - use current ODO vs fuel entry ODO
+      print('⚠️ Single fuel entry - using current ODO');
+      
+      final fuelEntry = sortedEntries.first;
+      final currentOdo = vehicle.value?.currentMileage ?? fuelEntry.odometerReading;
+      final distanceTraveled = currentOdo - fuelEntry.odometerReading;
+      
+      print('📏 Fuel entry ODO: ${fuelEntry.odometerReading}, Current ODO: $currentOdo');
+      print('📏 Distance traveled: $distanceTraveled km');
+      
+      // If vehicle has traveled at least 50km since refuel, we can estimate consumption
+      if (distanceTraveled >= 50 && fuelEntry.isFullTank) {
+        // Use tank capacity if available, otherwise use fuel amount
+        final tankCapacity = vehicle.value?.tankCapacity ?? fuelEntry.fuelAmount;
+        final estimatedFuelUsed = tankCapacity - (tankCapacity * 0.2); // Assume 80% of tank used
+        
+        averageFuelConsumption.value = (estimatedFuelUsed / distanceTraveled) * 100;
+        print('✅ Estimated consumption (from single full tank): ${averageFuelConsumption.value} L/100km');
+      } else if (vehicle.value?.fuelEfficiency != null && vehicle.value!.fuelEfficiency! > 0) {
+        // Use user-provided fuel efficiency as fallback
+        averageFuelConsumption.value = 100 / vehicle.value!.fuelEfficiency!;
+        print('✅ Using user-provided efficiency: ${averageFuelConsumption.value} L/100km (${vehicle.value!.fuelEfficiency} km/L)');
+      }
+    } else if (vehicle.value?.fuelEfficiency != null && vehicle.value!.fuelEfficiency! > 0) {
+      // Fallback: Use user-provided fuel efficiency
+      averageFuelConsumption.value = 100 / vehicle.value!.fuelEfficiency!;
+      print('✅ Using user-provided efficiency as fallback: ${averageFuelConsumption.value} L/100km (${vehicle.value!.fuelEfficiency} km/L)');
     } else {
       print('⚠️ Not enough data for consumption calculation');
     }
@@ -420,16 +443,22 @@ class VehicleDetailsController extends GetxController {
             }
           }
           
-          // Allow negative to show tank is empty
-          remainingFuel = remainingFuel.clamp(-10.0, 100.0);
-          estimatedFuelLevel.value = remainingFuel.clamp(0.0, 100.0); // Display only positive
+          // Clamp remaining fuel to reasonable values
+          remainingFuel = remainingFuel.clamp(0.0, 200.0); // Max 200L for safety
+          estimatedFuelLevel.value = remainingFuel;
           print('✅ Estimated fuel level: ${estimatedFuelLevel.value} L');
           
-          // Calculate estimated range
-          estimatedRange.value = remainingFuel > 0 
-              ? (remainingFuel / averageFuelConsumption.value) * 100
-              : 0.0;
-          print('✅ Estimated range: ${estimatedRange.value} km');
+          // Calculate estimated range using km/L conversion
+          // Formula: Range (km) = Fuel (L) × (100 / L/100km) = Fuel (L) × km/L
+          // Since averageFuelConsumption is in L/100km, we need: Fuel / (L/100km / 100)
+          if (remainingFuel > 0) {
+            final kmPerLiter = 100 / averageFuelConsumption.value;
+            estimatedRange.value = remainingFuel * kmPerLiter;
+            print('✅ Estimated range: ${estimatedRange.value} km (${remainingFuel}L × ${kmPerLiter.toStringAsFixed(2)} km/L)');
+          } else {
+            estimatedRange.value = 0.0;
+            print('⚠️ No fuel remaining, range = 0');
+          }
         } else {
           // No consumption data yet, just show the last fuel amount
           estimatedFuelLevel.value = latestFuel.fuelAmount;

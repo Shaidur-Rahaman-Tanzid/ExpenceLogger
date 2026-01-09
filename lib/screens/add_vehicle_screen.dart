@@ -22,6 +22,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   late TextEditingController _registrationController;
   late TextEditingController _mileageController;
   late TextEditingController _tankCapacityController;
+  late TextEditingController _fuelEfficiencyController;
 
   DateTime? _purchaseDate;
   String? _selectedVehicleType;
@@ -41,6 +42,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     _registrationController = TextEditingController(text: vehicle?.registrationNumber ?? '');
     _mileageController = TextEditingController(text: vehicle?.currentMileage?.toString() ?? '');
     _tankCapacityController = TextEditingController(text: vehicle?.tankCapacity?.toString() ?? '');
+    _fuelEfficiencyController = TextEditingController(text: vehicle?.fuelEfficiency?.toString() ?? '');
     
     _purchaseDate = vehicle?.purchaseDate;
     _selectedVehicleType = vehicle?.vehicleType;
@@ -55,6 +57,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
     _registrationController.dispose();
     _mileageController.dispose();
     _tankCapacityController.dispose();
+    _fuelEfficiencyController.dispose();
     super.dispose();
   }
 
@@ -130,6 +133,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
         tankCapacity: _tankCapacityController.text.isEmpty 
             ? null 
             : double.parse(_tankCapacityController.text),
+        fuelEfficiency: _fuelEfficiencyController.text.isEmpty 
+            ? null 
+            : double.parse(_fuelEfficiencyController.text),
         imagePath: vehicle?.imagePath,
         note: null,
         createdAt: vehicle?.createdAt ?? DateTime.now(),
@@ -258,9 +264,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                         )),
                         const SizedBox(width: 12),
                         Expanded(flex: 2, child: _buildTextField(
-                          controller: _registrationController, label: 'Registration *', hint: 'ABC-1234', icon: Icons.confirmation_number,
+                          controller: _registrationController, label: 'Registration', hint: 'ABC-1234', icon: Icons.confirmation_number,
                           textCapitalization: TextCapitalization.characters,
-                          validator: (v) => v?.isEmpty ?? true ? 'Required' : null,
+                          validator: null,
                         )),
                       ],
                     ),
@@ -294,7 +300,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                     Row(
                       children: [
                         Expanded(flex: 2, child: _buildTextField(
-                          controller: _mileageController, label: 'Mileage *', hint: '0', icon: Icons.speed,
+                          controller: _mileageController, label: 'Odo meeter *', hint: '0', icon: Icons.speed,
                           suffixText: 'km', keyboardType: TextInputType.number,
                           validator: (v) {
                             if (v?.isEmpty ?? true) return 'Required';
@@ -313,6 +319,22 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                           },
                         )),
                       ],
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _fuelEfficiencyController, 
+                      label: 'Fuel Efficiency (km/L)', 
+                      hint: 'e.g., 15', 
+                      icon: Icons.eco,
+                      suffixText: 'km/L', 
+                      keyboardType: TextInputType.number,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return null; // Optional field
+                        if (double.tryParse(v) == null) return 'Invalid';
+                        final value = double.parse(v);
+                        if (value <= 0 || value > 100) return 'Invalid range';
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
                     InkWell(
