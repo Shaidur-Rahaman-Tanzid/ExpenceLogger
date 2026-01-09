@@ -6,6 +6,7 @@ import '../controllers/vehicle_details_controller.dart';
 import '../services/currency_service.dart';
 import 'add_odo_entry_screen.dart';
 import 'add_fuel_entry_screen.dart';
+import 'nearby_stations_screen.dart';
 
 class VehicleDetailsScreen extends StatefulWidget {
   final Vehicle vehicle;
@@ -48,6 +49,19 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
             '${controller.vehicle.value?.make ?? widget.vehicle.make} ${controller.vehicle.value?.model ?? widget.vehicle.model}',
           )),
           actions: [
+            // Find nearby gas stations button
+            IconButton(
+              icon: const Icon(Icons.map),
+              tooltip: 'Find Nearby Gas Stations',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NearbyStationsScreen(),
+                  ),
+                );
+              },
+            ),
             // Edit vehicle button
             IconButton(
               icon: const Icon(Icons.edit),

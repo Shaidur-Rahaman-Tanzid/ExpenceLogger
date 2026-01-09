@@ -50,5 +50,9 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>We need your location to show nearby gas stations on the map</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need your location to show nearby gas stations on the map</string>
 </dict>
 </plist>

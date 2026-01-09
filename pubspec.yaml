@@ -58,6 +58,10 @@ dependencies:
   connectivity_plus: ^6.1.1
   # Modern bottom navigation bar
   google_nav_bar: ^5.0.6
+  # Google Maps and Location
+  google_maps_flutter: ^2.9.0
+  geolocator: ^13.0.2
+  geocoding: ^3.0.0
 
 dev_dependencies:
   flutter_test:

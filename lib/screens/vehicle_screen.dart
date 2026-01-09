@@ -5,6 +5,7 @@ import '../controllers/vehicle_controller.dart';
 import '../widgets/app_drawer.dart';
 import '../models/vehicle.dart';
 import 'vehicle_details_screen.dart';
+import 'nearby_stations_screen.dart';
 
 class VehicleScreen extends StatelessWidget {
   const VehicleScreen({super.key});
@@ -21,6 +22,18 @@ class VehicleScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Vehicles'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.map),
+            tooltip: 'Find Nearby Gas Stations',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NearbyStationsScreen(),
+                ),
+              );
+            },
+          ),
           Obx(
             () => IconButton(
               icon: Icon(
