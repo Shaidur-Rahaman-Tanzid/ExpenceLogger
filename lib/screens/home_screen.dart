@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import '../controllers/expense_controller.dart';
 import '../controllers/personalization_controller.dart';
+import '../controllers/budget_controller.dart';
 import '../services/currency_service.dart';
 import '../widgets/app_drawer.dart';
 import 'expense_detail_screen.dart';
@@ -22,10 +23,152 @@ class _HomeScreenState extends State<HomeScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  // Get or create BudgetController (singleton pattern)
+  late final BudgetController budgetController;
+  bool _isFirstLoad = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Check if BudgetController already exists
+    try {
+      budgetController = Get.find<BudgetController>();
+      _isFirstLoad = false; // Controller exists, not first load
+    } catch (e) {
+      // Controller doesn't exist, create it
+      budgetController = Get.put(BudgetController());
+      _isFirstLoad = true; // First time creating controller
+    }
+
+    // Only check alerts on first load
+    if (_isFirstLoad) {
+      _checkBudgetAlerts();
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _checkBudgetAlerts() {
+    // Only show alerts if this is the first load and controller says we should show them
+    if (!budgetController.shouldShowAlerts) return;
+
+    // Delay to ensure data is loaded
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+
+      // Mark that we've shown initial alerts
+      budgetController.markInitialAlertsShown();
+
+      // Check weekly budget
+      if (budgetController.notificationsEnabled.value &&
+          budgetController.isWeeklyBudgetExceeded &&
+          !budgetController.hasShownWeeklyAlert.value) {
+        budgetController.markWeeklyAlertShown();
+        _showBudgetAlert(
+          'Weekly Budget Exceeded!',
+          'You have spent ${_formatCurrency(budgetController.weeklySpent.value)} out of your ${_formatCurrency(budgetController.weeklyBudget.value)} weekly budget.',
+          Icons.calendar_view_week,
+          Colors.orange,
+        );
+      }
+
+      // Check monthly budget
+      if (budgetController.notificationsEnabled.value &&
+          budgetController.isMonthlyBudgetExceeded &&
+          !budgetController.hasShownMonthlyAlert.value) {
+        budgetController.markMonthlyAlertShown();
+        _showBudgetAlert(
+          'Monthly Budget Exceeded!',
+          'You have spent ${_formatCurrency(budgetController.monthlySpent.value)} out of your ${_formatCurrency(budgetController.monthlyBudget.value)} monthly budget.',
+          Icons.calendar_month,
+          Colors.red,
+        );
+      }
+    });
+  }
+
+  void _showBudgetAlert(
+    String title,
+    String message,
+    IconData icon,
+    Color color,
+  ) {
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(icon, color: color, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(message),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: color, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Consider reviewing your expenses in the Settings page.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: color.withOpacity(0.8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Later'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                Get.toNamed('/settings');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('View Budget'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   String _formatCurrency(double amount) {
@@ -80,6 +223,61 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Widget _buildBudgetAlertBanner(
+    String title,
+    double spent,
+    double budget,
+    IconData icon,
+    Color color,
+  ) {
+    final overAmount = spent - budget;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        border: Border.all(color: color, width: 2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Over by ${_formatCurrency(overAmount)}',
+                  style: TextStyle(color: color.withOpacity(0.8), fontSize: 14),
+                ),
+                Text(
+                  'Spent: ${_formatCurrency(spent)} / ${_formatCurrency(budget)}',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.visibility, color: color),
+            onPressed: () => Get.toNamed('/settings'),
+            tooltip: 'View Budget Details',
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Get the ExpenseController instance
@@ -130,6 +328,34 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return Column(
           children: [
+            // Budget Alert Banners - Using Obx for reactive updates
+            Obx(() {
+              if (budgetController.notificationsEnabled.value &&
+                  budgetController.isWeeklyBudgetExceeded) {
+                return _buildBudgetAlertBanner(
+                  'Weekly Budget Exceeded',
+                  budgetController.weeklySpent.value,
+                  budgetController.weeklyBudget.value,
+                  Icons.calendar_view_week,
+                  Colors.orange,
+                );
+              }
+              return const SizedBox.shrink();
+            }),
+            Obx(() {
+              if (budgetController.notificationsEnabled.value &&
+                  budgetController.isMonthlyBudgetExceeded) {
+                return _buildBudgetAlertBanner(
+                  'Monthly Budget Exceeded',
+                  budgetController.monthlySpent.value,
+                  budgetController.monthlyBudget.value,
+                  Icons.calendar_month,
+                  Colors.red,
+                );
+              }
+              return const SizedBox.shrink();
+            }),
+
             // Today's Total Card
             Container(
               width: double.infinity,

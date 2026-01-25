@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/database_helper.dart';
 import '../services/currency_service.dart';
 import '../services/language_service.dart';
+import '../controllers/budget_controller.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -151,6 +152,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _monthlyBudget = monthlyValue;
       });
 
+      // Update the BudgetController to reflect changes in real-time
+      try {
+        final budgetController = Get.find<BudgetController>();
+        await budgetController.updateWeeklyBudget(weeklyValue);
+        await budgetController.updateMonthlyBudget(monthlyValue);
+      } catch (e) {
+        // BudgetController might not be initialized yet, that's okay
+        debugPrint('BudgetController not found: $e');
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -180,6 +191,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _notificationsEnabled = value;
       });
+
+      // Update the BudgetController to reflect changes in real-time
+      try {
+        final budgetController = Get.find<BudgetController>();
+        await budgetController.updateNotificationSettings(value);
+      } catch (e) {
+        // BudgetController might not be initialized yet, that's okay
+        debugPrint('BudgetController not found: $e');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

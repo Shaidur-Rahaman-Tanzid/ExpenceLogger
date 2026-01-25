@@ -5,14 +5,12 @@ import '../controllers/expense_controller.dart';
 import '../controllers/personalization_controller.dart';
 import '../screens/budget_screen.dart';
 import '../screens/cloud_sync_screen.dart';
+import '../screens/nearby_stations_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
 
-  const AppDrawer({
-    super.key,
-    required this.scaffoldKey,
-  });
+  const AppDrawer({super.key, required this.scaffoldKey});
 
   @override
   Widget build(BuildContext context) {
@@ -31,14 +29,12 @@ class AppDrawer extends StatelessWidget {
                     gradient: LinearGradient(
                       colors: Theme.of(context).brightness == Brightness.dark
                           ? [
-                              Theme.of(context)
-                                  .colorScheme
-                                  .primary
-                                  .withOpacity(0.5),
-                              Theme.of(context)
-                                  .colorScheme
-                                  .secondary
-                                  .withOpacity(0.4),
+                              Theme.of(
+                                context,
+                              ).colorScheme.primary.withOpacity(0.5),
+                              Theme.of(
+                                context,
+                              ).colorScheme.secondary.withOpacity(0.4),
                             ]
                           : [
                               Theme.of(context).colorScheme.primary,
@@ -55,7 +51,9 @@ class AppDrawer extends StatelessWidget {
                       // User Profile Section
                       Obx(() {
                         final hasImage = personalizationController
-                            .profileImagePath.value.isNotEmpty;
+                            .profileImagePath
+                            .value
+                            .isNotEmpty;
 
                         return InkWell(
                           onTap: () {
@@ -77,27 +75,31 @@ class AppDrawer extends StatelessWidget {
                                 child: ClipOval(
                                   child: hasImage
                                       ? Image.file(
-                                          File(personalizationController
-                                              .profileImagePath.value),
+                                          File(
+                                            personalizationController
+                                                .profileImagePath
+                                                .value,
+                                          ),
                                           width: 60,
                                           height: 60,
                                           fit: BoxFit.cover,
                                           errorBuilder:
                                               (context, error, stackTrace) {
-                                            return Center(
-                                              child: Text(
-                                                personalizationController
-                                                    .getUserInitials(),
-                                                style: TextStyle(
-                                                  fontSize: 24,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context)
-                                                      .colorScheme
-                                                      .primary,
-                                                ),
-                                              ),
-                                            );
-                                          },
+                                                return Center(
+                                                  child: Text(
+                                                    personalizationController
+                                                        .getUserInitials(),
+                                                    style: TextStyle(
+                                                      fontSize: 24,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Theme.of(
+                                                        context,
+                                                      ).colorScheme.primary,
+                                                    ),
+                                                  ),
+                                                );
+                                              },
                                         )
                                       : Center(
                                           child: Text(
@@ -106,9 +108,9 @@ class AppDrawer extends StatelessWidget {
                                             style: TextStyle(
                                               fontSize: 24,
                                               fontWeight: FontWeight.bold,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .primary,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
                                             ),
                                           ),
                                         ),
@@ -122,9 +124,12 @@ class AppDrawer extends StatelessWidget {
                                   children: [
                                     Text(
                                       personalizationController
-                                              .userName.value.isNotEmpty
+                                              .userName
+                                              .value
+                                              .isNotEmpty
                                           ? personalizationController
-                                              .userName.value
+                                                .userName
+                                                .value
                                           : 'Guest User',
                                       style: const TextStyle(
                                         color: Colors.white,
@@ -137,9 +142,12 @@ class AppDrawer extends StatelessWidget {
                                     const SizedBox(height: 4),
                                     Text(
                                       personalizationController
-                                              .userEmail.value.isNotEmpty
+                                              .userEmail
+                                              .value
+                                              .isNotEmpty
                                           ? personalizationController
-                                              .userEmail.value
+                                                .userEmail
+                                                .value
                                           : 'Tap to set up profile',
                                       style: TextStyle(
                                         color: Colors.white.withOpacity(0.9),
@@ -219,17 +227,28 @@ class AppDrawer extends StatelessWidget {
                     scaffoldKey.currentState?.openDrawer();
                   },
                 ),
+                const Divider(),
                 _DrawerMenuItem(
-                  icon: Icons.account_balance_wallet,
-                  title: 'budgets_goals'.tr,
-                  subtitle: 'manage_budgets_savings'.tr,
+                  icon: Icons.map,
+                  title: 'Nearby Gas Stations',
+                  subtitle: 'Find gas stations near you',
                   onTap: () async {
                     Navigator.pop(context);
-                    await Get.to(() => const BudgetScreen());
+                    await Get.to(() => const NearbyStationsScreen());
                     scaffoldKey.currentState?.openDrawer();
                   },
                 ),
-                const Divider(),
+                // _DrawerMenuItem(
+                //   icon: Icons.account_balance_wallet,
+                //   title: 'budgets_goals'.tr,
+                //   subtitle: 'manage_budgets_savings'.tr,
+                //   onTap: () async {
+                //     Navigator.pop(context);
+                //     await Get.to(() => const BudgetScreen());
+                //     scaffoldKey.currentState?.openDrawer();
+                //   },
+                // ),
+                // const Divider(),
                 _DrawerMenuItem(
                   icon: Icons.cloud,
                   title: 'Cloud Backup & Sync',
