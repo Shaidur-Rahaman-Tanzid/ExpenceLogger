@@ -6,6 +6,7 @@ import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/add_expense_screen.dart';
+import 'screens/edit_expense_screen.dart';
 import 'screens/add_vehicle_screen.dart';
 import 'screens/expense_history_screen.dart';
 import 'screens/income_history_screen.dart';
@@ -138,6 +139,7 @@ class _MoneyMateAppState extends State<MoneyMateApp>
           GetPage(name: '/', page: () => const SplashScreen()),
           GetPage(name: '/home', page: () => const MainScreen()),
           GetPage(name: '/add-expense', page: () => const AddExpenseScreen()),
+          GetPage(name: '/edit-expense', page: () => const EditExpenseScreen()),
           GetPage(name: '/add-vehicle', page: () => const AddVehicleScreen()),
           GetPage(name: '/history', page: () => const ExpenseHistoryScreen()),
           GetPage(

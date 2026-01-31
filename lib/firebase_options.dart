@@ -67,7 +67,7 @@ class DefaultFirebaseOptions {
     projectId: 'expence-logger',
     databaseURL: 'https://expence-logger-default-rtdb.firebaseio.com',
     storageBucket: 'expence-logger.firebasestorage.app',
-    iosBundleId: 'com.example.expencelogger',
+    iosBundleId: 'com.sahid.expencelogger',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -77,7 +77,7 @@ class DefaultFirebaseOptions {
     projectId: 'expence-logger',
     databaseURL: 'https://expence-logger-default-rtdb.firebaseio.com',
     storageBucket: 'expence-logger.firebasestorage.app',
-    iosBundleId: 'com.example.expencelogger',
+    iosBundleId: 'com.sahid.expencelogger',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

@@ -151,6 +151,16 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
     return '$minutes:$seconds';
   }
 
+  Future<void> _editExpense() async {
+    // Navigate to edit screen (we'll pass the expense to edit)
+    final result = await Get.toNamed('/edit-expense', arguments: widget.expense);
+    
+    // If expense was updated, pop back to refresh the previous screen
+    if (result == true) {
+      Get.back(result: true); // Go back to previous screen with refresh signal
+    }
+  }
+
   Future<void> _deleteExpense() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -202,6 +212,11 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
         centerTitle: true,
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => _editExpense(),
+            tooltip: 'Edit Expense',
+          ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: _deleteExpense,

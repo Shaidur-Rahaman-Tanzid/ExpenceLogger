@@ -1,4 +1,4 @@
-package com.example.expencelogger
+package com.sahid.expencelogger
 
 import io.flutter.embedding.android.FlutterActivity
 
