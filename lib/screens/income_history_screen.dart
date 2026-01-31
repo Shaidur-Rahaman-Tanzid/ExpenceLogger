@@ -15,16 +15,20 @@ class IncomeHistoryScreen extends StatefulWidget {
 
 class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
   final controller = Get.find<ExpenseController>();
-  List<Expense> _filteredIncomes = [];
 
   final TextEditingController _searchController = TextEditingController();
   DateTime? _startDate;
   DateTime? _endDate;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _filterIncomes();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
   }
 
   @override
@@ -33,42 +37,39 @@ class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
     super.dispose();
   }
 
-  void _filterIncomes() {
-    String searchQuery = _searchController.text.toLowerCase();
+  // Computed property that filters incomes reactively
+  List<Expense> get _filteredIncomes {
+    return controller.expenses.where((expense) {
+      // Only show income (negative amounts), not expenses
+      if (expense.amount >= 0) return false;
 
-    setState(() {
-      _filteredIncomes = controller.expenses.where((expense) {
-        // Only show income (negative amounts), not expenses
-        if (expense.amount >= 0) return false;
+      // Search filter
+      bool matchesSearch =
+          _searchQuery.isEmpty ||
+          expense.title.toLowerCase().contains(_searchQuery) ||
+          expense.category.toLowerCase().contains(_searchQuery);
 
-        // Search filter
-        bool matchesSearch =
-            searchQuery.isEmpty ||
-            expense.title.toLowerCase().contains(searchQuery) ||
-            expense.category.toLowerCase().contains(searchQuery);
+      // Date range filter
+      bool matchesDateRange = true;
+      if (_startDate != null && _endDate != null) {
+        final expenseDate = DateTime(
+          expense.date.year,
+          expense.date.month,
+          expense.date.day,
+        );
+        final start = DateTime(
+          _startDate!.year,
+          _startDate!.month,
+          _startDate!.day,
+        );
+        final end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
+        matchesDateRange =
+            expenseDate.isAfter(start.subtract(const Duration(days: 1))) &&
+            expenseDate.isBefore(end.add(const Duration(days: 1)));
+      }
 
-        // Date range filter
-        bool matchesDateRange = true;
-        if (_startDate != null && _endDate != null) {
-          final expenseDate = DateTime(
-            expense.date.year,
-            expense.date.month,
-            expense.date.day,
-          );
-          final start = DateTime(
-            _startDate!.year,
-            _startDate!.month,
-            _startDate!.day,
-          );
-          final end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
-          matchesDateRange =
-              expenseDate.isAfter(start.subtract(const Duration(days: 1))) &&
-              expenseDate.isBefore(end.add(const Duration(days: 1)));
-        }
-
-        return matchesSearch && matchesDateRange;
-      }).toList();
-    });
+      return matchesSearch && matchesDateRange;
+    }).toList();
   }
 
   Future<void> _selectDateRange() async {
@@ -86,7 +87,6 @@ class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
         _startDate = picked.start;
         _endDate = picked.end;
       });
-      _filterIncomes();
     }
   }
 
@@ -95,7 +95,6 @@ class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
       _startDate = null;
       _endDate = null;
     });
-    _filterIncomes();
   }
 
   String _formatCurrency(double amount) {
@@ -175,7 +174,7 @@ class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
                               icon: const Icon(Icons.clear),
                               onPressed: () {
                                 _searchController.clear();
-                                _filterIncomes();
+                                // setState already called by listener
                               },
                             )
                           : null,
@@ -183,7 +182,7 @@ class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onChanged: (value) => _filterIncomes(),
+                    // onChanged not needed - listener handles it
                   ),
                   const SizedBox(height: 12),
 
@@ -347,7 +346,7 @@ class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
                           },
                           onDismissed: (direction) async {
                             await controller.deleteExpense(income.id!);
-                            _filterIncomes();
+                            // No need to call _filterIncomes - getter handles it
                           },
                           child: Card(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -357,11 +356,13 @@ class _IncomeHistoryScreenState extends State<IncomeHistoryScreen> {
                             ),
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
-                              onTap: () {
-                                Get.to(
+                              onTap: () async {
+                                // Navigate and wait for result
+                                await Get.to(
                                   () => ExpenseDetailScreen(expense: income),
                                   transition: Transition.rightToLeft,
                                 );
+                                // ExpenseController auto-updates, Obx will refresh UI
                               },
                               child: Padding(
                                 padding: const EdgeInsets.all(16),

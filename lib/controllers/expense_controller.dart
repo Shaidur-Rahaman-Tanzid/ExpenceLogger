@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../models/expense.dart';
 import '../services/database_helper.dart';
@@ -107,18 +108,16 @@ class ExpenseController extends GetxController {
     try {
       await DatabaseHelper().updateExpense(expense);
 
-      // Find and update the expense in the list
-      final index = expenses.indexWhere((e) => e.id == expense.id);
-      if (index != -1) {
-        expenses[index] = expense;
-        expenses.refresh(); // Notify observers
-        _calculateTotals();
-      }
+      // Refresh the entire list from database to ensure consistency
+      await fetchExpenses();
 
       Get.snackbar(
         'Success',
         'Expense updated successfully!',
         snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
       );
     } catch (e) {
       Get.snackbar(

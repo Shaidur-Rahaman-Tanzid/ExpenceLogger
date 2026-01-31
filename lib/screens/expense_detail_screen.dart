@@ -18,6 +18,7 @@ class ExpenseDetailScreen extends StatefulWidget {
 
 class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final ExpenseController controller = Get.find<ExpenseController>();
   bool _isPlaying = false;
   Duration _currentPosition = Duration.zero;
   Duration _totalDuration = Duration.zero;
@@ -26,6 +27,17 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
   void initState() {
     super.initState();
     _setupAudioPlayer();
+  }
+
+  // Get the current expense from controller (reactive to updates)
+  Expense? get currentExpense {
+    try {
+      return controller.expenses.firstWhere(
+        (e) => e.id == widget.expense.id,
+      );
+    } catch (e) {
+      return null; // Expense was deleted
+    }
   }
 
   void _setupAudioPlayer() {
@@ -106,11 +118,12 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
   }
 
   Future<void> _playVoiceNote() async {
-    if (widget.expense.voiceNotePath == null) return;
+    final expense = currentExpense;
+    if (expense == null || expense.voiceNotePath == null) return;
 
     try {
       // Check if file exists
-      final file = File(widget.expense.voiceNotePath!);
+      final file = File(expense.voiceNotePath!);
       if (!await file.exists()) {
         Get.snackbar(
           'error'.tr,
@@ -130,7 +143,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
         });
       } else {
         await _audioPlayer.play(
-          DeviceFileSource(widget.expense.voiceNotePath!),
+          DeviceFileSource(expense.voiceNotePath!),
         );
         setState(() => _isPlaying = true);
       }
@@ -149,6 +162,36 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
     final minutes = twoDigits(duration.inMinutes.remainder(60));
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return '$minutes:$seconds';
+  }
+
+  Future<void> _editExpense() async {
+    // Get current expense from controller
+    final expense = currentExpense;
+    if (expense == null) {
+      Get.back();
+      Get.snackbar(
+        'error'.tr,
+        'This item has been deleted',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    
+    // Navigate to edit screen
+    final result = await Get.toNamed('/edit-expense', arguments: expense);
+    
+    // Show success toast after update
+    if (result != null && result is Expense) {
+      Get.snackbar(
+        'success'.tr,
+        expense.amount > 0 ? 'Expense updated successfully' : 'Income updated successfully',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   Future<void> _deleteExpense() async {
@@ -196,21 +239,30 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('expense_details'.tr),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline),
-            onPressed: _deleteExpense,
-            tooltip: 'Delete Expense',
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
+    return Obx(() {
+      // Get current expense reactively
+      final expense = currentExpense ?? widget.expense;
+      
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('expense_details'.tr),
+          centerTitle: true,
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: () => _editExpense(),
+              tooltip: 'Edit Expense',
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _deleteExpense,
+              tooltip: 'Delete Expense',
+            ),
+          ],
+        ),
+        body: SingleChildScrollView(
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Amount Card
@@ -220,8 +272,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    _getCategoryColor(widget.expense.category),
-                    _getCategoryColor(widget.expense.category).withOpacity(0.7),
+                    _getCategoryColor(expense.category),
+                    _getCategoryColor(expense.category).withOpacity(0.7),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -230,7 +282,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                 boxShadow: [
                   BoxShadow(
                     color: _getCategoryColor(
-                      widget.expense.category,
+                      expense.category,
                     ).withOpacity(0.3),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
@@ -240,13 +292,13 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
               child: Column(
                 children: [
                   Icon(
-                    _getCategoryIcon(widget.expense.category),
+                    _getCategoryIcon(expense.category),
                     size: 60,
                     color: Colors.white,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    _formatCurrency(widget.expense.amount.abs()),
+                    _formatCurrency(expense.amount.abs()),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 40,
@@ -255,7 +307,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    widget.expense.category,
+                    expense.category,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
                       fontSize: 18,
@@ -282,7 +334,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                     _buildDetailRow(
                       icon: Icons.title,
                       label: 'Title',
-                      value: widget.expense.title,
+                      value: expense.title,
                     ),
                     const Divider(height: 24),
 
@@ -292,13 +344,13 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                       label: 'Date',
                       value: DateFormat(
                         'EEEE, MMMM d, yyyy',
-                      ).format(widget.expense.date),
+                      ).format(expense.date),
                     ),
                     const SizedBox(height: 12),
                     _buildDetailRow(
                       icon: Icons.access_time,
                       label: 'Time',
-                      value: DateFormat('h:mm a').format(widget.expense.date),
+                      value: DateFormat('h:mm a').format(expense.date),
                     ),
                     const Divider(height: 24),
 
@@ -306,8 +358,8 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                     _buildDetailRow(
                       icon: Icons.category,
                       label: 'Category',
-                      value: widget.expense.category,
-                      valueColor: _getCategoryColor(widget.expense.category),
+                      value: expense.category,
+                      valueColor: _getCategoryColor(expense.category),
                     ),
                   ],
                 ),
@@ -315,7 +367,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
             ),
 
             // Note Card (if exists)
-            if (widget.expense.note != null && widget.expense.note!.isNotEmpty)
+            if (expense.note != null && expense.note!.isNotEmpty)
               Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 elevation: 2,
@@ -346,7 +398,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        widget.expense.note!,
+                        expense.note!,
                         style: TextStyle(
                           fontSize: 15,
                           color: Colors.grey[700],
@@ -359,7 +411,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
               ),
 
             // Voice Note Card (if exists)
-            if (widget.expense.voiceNotePath != null)
+            if (expense.voiceNotePath != null)
               Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 elevation: 2,
@@ -485,7 +537,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
               ),
 
             // Image Memo Card (if exists)
-            if (widget.expense.imagePath != null)
+            if (expense.imagePath != null)
               Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 elevation: 2,
@@ -516,7 +568,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                       ),
                       const SizedBox(height: 12),
                       FutureBuilder<bool>(
-                        future: File(widget.expense.imagePath!).exists(),
+                        future: File(expense.imagePath!).exists(),
                         builder: (context, snapshot) {
                           if (snapshot.connectionState ==
                               ConnectionState.waiting) {
@@ -569,7 +621,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                                           minScale: 0.5,
                                           maxScale: 4.0,
                                           child: Image.file(
-                                            File(widget.expense.imagePath!),
+                                            File(expense.imagePath!),
                                             fit: BoxFit.contain,
                                           ),
                                         ),
@@ -598,7 +650,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
                                   child: Image.file(
-                                    File(widget.expense.imagePath!),
+                                    File(expense.imagePath!),
                                     width: double.infinity,
                                     fit: BoxFit.cover,
                                   ),
@@ -627,6 +679,7 @@ class _ExpenseDetailScreenState extends State<ExpenseDetailScreen> {
         ),
       ),
     );
+    });
   }
 
   Widget _buildDetailRow({

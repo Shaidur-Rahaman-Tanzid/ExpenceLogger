@@ -6,7 +6,6 @@ import '../controllers/vehicle_details_controller.dart';
 import '../services/currency_service.dart';
 import 'add_odo_entry_screen.dart';
 import 'add_fuel_entry_screen.dart';
-import 'nearby_stations_screen.dart';
 
 class VehicleDetailsScreen extends StatefulWidget {
   final Vehicle vehicle;
@@ -45,23 +44,12 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Obx(() => Text(
-            '${controller.vehicle.value?.make ?? widget.vehicle.make} ${controller.vehicle.value?.model ?? widget.vehicle.model}',
-          )),
-          actions: [
-            // Find nearby gas stations button
-            IconButton(
-              icon: const Icon(Icons.map),
-              tooltip: 'Find Nearby Gas Stations',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const NearbyStationsScreen(),
-                  ),
-                );
-              },
+          title: Obx(
+            () => Text(
+              '${controller.vehicle.value?.make ?? widget.vehicle.make} ${controller.vehicle.value?.model ?? widget.vehicle.model}',
             ),
+          ),
+          actions: [
             // Edit vehicle button
             IconButton(
               icon: const Icon(Icons.edit),
@@ -80,7 +68,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
           children: [
             // Vehicle stats card
             _buildStatsCard(controller),
-            
+
             // Tabs content
             Expanded(
               child: TabBarView(
@@ -102,7 +90,7 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
       '/add-vehicle',
       arguments: controller.vehicle.value,
     );
-    
+
     // If vehicle was updated, refresh the data
     if (result == true) {
       await controller.refreshVehicle();
@@ -111,91 +99,100 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
   }
 
   Widget _buildStatsCard(VehicleDetailsController controller) {
-    return Obx(() => Container(
-      margin: const EdgeInsets.all(8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.shade700, Colors.blue.shade900],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+    return Obx(
+      () => Container(
+        margin: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.blue.shade700, Colors.blue.shade900],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Title
-          Text(
-            'Vehicle Statistics',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.blue.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Stats grid using Wrap for better responsiveness
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            alignment: WrapAlignment.spaceAround,
-            children: [
-              _buildStatItem(
-                icon: Icons.local_gas_station,
-                label: 'Avg Consumption',
-                value: controller.averageFuelConsumption.value > 0
-                    ? '${controller.averageFuelConsumption.value.toStringAsFixed(1)} L/100km'
-                    : 'N/A',
+          ],
+        ),
+        child: Column(
+          children: [
+            // Title
+            Text(
+              'Vehicle Statistics',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
-              _buildStatItem(
-                icon: Icons.water_drop,
-                label: 'Est. Fuel Level',
-                value: controller.fuelEntries.isNotEmpty
-                    ? '${controller.estimatedFuelLevel.value.toStringAsFixed(1)} L'
-                    : 'N/A',
-              ),
-              _buildStatItem(
-                icon: Icons.route,
-                label: 'Est. Range',
-                value: controller.fuelEntries.isNotEmpty && controller.averageFuelConsumption.value > 0
-                    ? '${controller.estimatedRange.value.toStringAsFixed(0)} km'
-                    : 'N/A',
-              ),
-              _buildStatItem(
-                icon: Icons.speed,
-                label: 'Current ODO',
-                value: '${controller.vehicle.value?.currentMileage?.toStringAsFixed(0) ?? '0'} km',
-              ),
-              _buildStatItem(
-                icon: Icons.attach_money,
-                label: 'Total Fuel Cost',
-                value: controller.totalFuelCost.value > 0
-                    ? '${_currencyService.selectedCurrencySymbol.value}${controller.totalFuelCost.value.toStringAsFixed(2)}'
-                    : '${_currencyService.selectedCurrencySymbol.value}0.00',
-              ),
-              _buildStatItem(
-                icon: Icons.show_chart,
-                label: 'Avg Cost/L',
-                value: controller.averageCostPerLiter > 0
-                    ? '${_currencyService.selectedCurrencySymbol.value}${controller.averageCostPerLiter.toStringAsFixed(2)}'
-                    : '${_currencyService.selectedCurrencySymbol.value}0.00',
-              ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: 16),
+
+            // Stats grid using Wrap for better responsiveness
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              alignment: WrapAlignment.spaceAround,
+              children: [
+                _buildStatItem(
+                  icon: Icons.local_gas_station,
+                  label: 'Avg Consumption',
+                  value: controller.averageFuelConsumption.value > 0
+                      ? '${controller.averageFuelConsumption.value.toStringAsFixed(1)} L/100km'
+                      : 'N/A',
+                ),
+                _buildStatItem(
+                  icon: Icons.water_drop,
+                  label: 'Est. Fuel Level',
+                  value: controller.fuelEntries.isNotEmpty
+                      ? '${controller.estimatedFuelLevel.value.toStringAsFixed(1)} L'
+                      : 'N/A',
+                ),
+                _buildStatItem(
+                  icon: Icons.route,
+                  label: 'Est. Range',
+                  value:
+                      controller.fuelEntries.isNotEmpty &&
+                          controller.averageFuelConsumption.value > 0
+                      ? '${controller.estimatedRange.value.toStringAsFixed(0)} km'
+                      : 'N/A',
+                ),
+                _buildStatItem(
+                  icon: Icons.speed,
+                  label: 'Current ODO',
+                  value:
+                      '${controller.vehicle.value?.currentMileage?.toStringAsFixed(0) ?? '0'} km',
+                ),
+                _buildStatItem(
+                  icon: Icons.attach_money,
+                  label: 'Total Fuel Cost',
+                  value: controller.totalFuelCost.value > 0
+                      ? '${_currencyService.selectedCurrencySymbol.value}${controller.totalFuelCost.value.toStringAsFixed(2)}'
+                      : '${_currencyService.selectedCurrencySymbol.value}0.00',
+                ),
+                _buildStatItem(
+                  icon: Icons.show_chart,
+                  label: 'Avg Cost/L',
+                  value: controller.averageCostPerLiter > 0
+                      ? '${_currencyService.selectedCurrencySymbol.value}${controller.averageCostPerLiter.toStringAsFixed(2)}'
+                      : '${_currencyService.selectedCurrencySymbol.value}0.00',
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
-    ));
+    );
   }
 
-  Widget _buildStatItem({required IconData icon, required String label, required String value}) {
+  Widget _buildStatItem({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
     return Column(
       children: [
         Icon(icon, color: Colors.white70, size: 24),
@@ -210,17 +207,17 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
         ),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 10,
-          ),
+          style: const TextStyle(color: Colors.white70, fontSize: 10),
           textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
-  Widget _buildOdoTab(VehicleDetailsController controller, BuildContext context) {
+  Widget _buildOdoTab(
+    VehicleDetailsController controller,
+    BuildContext context,
+  ) {
     return Obx(() {
       if (controller.odoEntries.isEmpty) {
         return Center(
@@ -263,10 +260,13 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                       '${entry.odometerReading.toStringAsFixed(0)} km',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    subtitle: Text(DateFormat('MMM dd, yyyy').format(entry.recordedAt)),
+                    subtitle: Text(
+                      DateFormat('MMM dd, yyyy').format(entry.recordedAt),
+                    ),
                     trailing: IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () => _deleteOdoEntry(context, controller, entry.id!),
+                      onPressed: () =>
+                          _deleteOdoEntry(context, controller, entry.id!),
                     ),
                   ),
                 );
@@ -283,7 +283,9 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                 icon: const Icon(Icons.add),
                 label: const Text('ADD ODO ENTRY'),
                 style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -293,7 +295,10 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
     });
   }
 
-  Widget _buildFuelTab(VehicleDetailsController controller, BuildContext context) {
+  Widget _buildFuelTab(
+    VehicleDetailsController controller,
+    BuildContext context,
+  ) {
     return Obx(() {
       if (controller.fuelEntries.isEmpty) {
         return Center(
@@ -330,7 +335,10 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                   child: ListTile(
                     leading: CircleAvatar(
                       backgroundColor: Colors.orange.shade100,
-                      child: Icon(Icons.local_gas_station, color: Colors.orange.shade700),
+                      child: Icon(
+                        Icons.local_gas_station,
+                        color: Colors.orange.shade700,
+                      ),
                     ),
                     title: Text(
                       '${entry.fuelAmount.toStringAsFixed(1)} L',
@@ -339,9 +347,15 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Cost: ${_currencyService.selectedCurrencySymbol.value}${entry.fuelCost.toStringAsFixed(2)}'),
-                        Text('ODO: ${entry.odometerReading.toStringAsFixed(0)} km'),
-                        Text(DateFormat('MMM dd, yyyy').format(entry.refuelDate)),
+                        Text(
+                          'Cost: ${_currencyService.selectedCurrencySymbol.value}${entry.fuelCost.toStringAsFixed(2)}',
+                        ),
+                        Text(
+                          'ODO: ${entry.odometerReading.toStringAsFixed(0)} km',
+                        ),
+                        Text(
+                          DateFormat('MMM dd, yyyy').format(entry.refuelDate),
+                        ),
                       ],
                     ),
                     trailing: Column(
@@ -349,19 +363,26 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                       children: [
                         if (entry.isFullTank)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.green.shade100,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Text(
                               'Full',
-                              style: TextStyle(fontSize: 10, color: Colors.green),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.green,
+                              ),
                             ),
                           ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteFuelEntry(context, controller, entry.id!),
+                          onPressed: () =>
+                              _deleteFuelEntry(context, controller, entry.id!),
                         ),
                       ],
                     ),
@@ -381,7 +402,9 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
                 icon: const Icon(Icons.add),
                 label: const Text('ADD FUEL ENTRY'),
                 style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -400,7 +423,10 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
     ).then((_) => controller.fetchOdoEntries());
   }
 
-  void _addFuelEntry(BuildContext context, VehicleDetailsController controller) {
+  void _addFuelEntry(
+    BuildContext context,
+    VehicleDetailsController controller,
+  ) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -409,7 +435,11 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
     ).then((_) => controller.fetchAllData());
   }
 
-  void _deleteOdoEntry(BuildContext context, VehicleDetailsController controller, int id) {
+  void _deleteOdoEntry(
+    BuildContext context,
+    VehicleDetailsController controller,
+    int id,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -432,7 +462,11 @@ class _VehicleDetailsScreenState extends State<VehicleDetailsScreen> {
     );
   }
 
-  void _deleteFuelEntry(BuildContext context, VehicleDetailsController controller, int id) {
+  void _deleteFuelEntry(
+    BuildContext context,
+    VehicleDetailsController controller,
+    int id,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

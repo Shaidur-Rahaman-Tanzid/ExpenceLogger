@@ -5,7 +5,6 @@ import '../controllers/vehicle_controller.dart';
 import '../widgets/app_drawer.dart';
 import '../models/vehicle.dart';
 import 'vehicle_details_screen.dart';
-import 'nearby_stations_screen.dart';
 
 class VehicleScreen extends StatelessWidget {
   const VehicleScreen({super.key});
@@ -22,18 +21,6 @@ class VehicleScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Vehicles'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.map),
-            tooltip: 'Find Nearby Gas Stations',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NearbyStationsScreen(),
-                ),
-              );
-            },
-          ),
           Obx(
             () => IconButton(
               icon: Icon(
@@ -54,7 +41,8 @@ class VehicleScreen extends StatelessWidget {
       ),
       drawer: AppDrawer(scaffoldKey: scaffoldKey),
       body: Obx(() {
-        if (vehicleController.isLoading.value && vehicleController.vehicles.isEmpty) {
+        if (vehicleController.isLoading.value &&
+            vehicleController.vehicles.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
 
@@ -76,9 +64,9 @@ class VehicleScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Tap + to add your first vehicle',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[600],
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -155,7 +143,9 @@ class VehicleCard extends StatelessWidget {
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Delete Vehicle'),
-              content: Text('Are you sure you want to delete ${vehicle.make} ${vehicle.model}?'),
+              content: Text(
+                'Are you sure you want to delete ${vehicle.make} ${vehicle.model}?',
+              ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
@@ -163,7 +153,10 @@ class VehicleCard extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                  child: const Text(
+                    'Delete',
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ),
               ],
             ),
@@ -176,17 +169,11 @@ class VehicleCard extends StatelessWidget {
           contentPadding: const EdgeInsets.all(16),
           leading: CircleAvatar(
             radius: 30,
-            child: Icon(
-              _getVehicleIcon(vehicle.vehicleType),
-              size: 30,
-            ),
+            child: Icon(_getVehicleIcon(vehicle.vehicleType), size: 30),
           ),
           title: Text(
             '${vehicle.make} ${vehicle.model}',
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           ),
           subtitle: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,7 +196,10 @@ class VehicleCard extends StatelessWidget {
             children: [
               if (vehicle.vehicleType != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Theme.of(context).primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
@@ -227,10 +217,7 @@ class VehicleCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     vehicle.fuelType!,
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: Colors.grey[500], fontSize: 11),
                   ),
                 ),
             ],

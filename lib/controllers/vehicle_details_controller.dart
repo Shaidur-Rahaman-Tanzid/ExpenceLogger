@@ -159,7 +159,7 @@ class VehicleDetailsController extends GetxController {
         final expense = Expense(
           title: 'Fuel - $vehicleName $vehicleModel',
           amount: entry.fuelCost,
-          category: 'Transportation',
+          category: 'transport', // Changed from 'Transportation' to match standard category list
           date: entry.refuelDate,
           note: 'Fuel: ${entry.fuelAmount.toStringAsFixed(2)}L at ${entry.odometerReading.toStringAsFixed(0)}km${entry.note != null ? '\n${entry.note}' : ''}',
         );
@@ -259,7 +259,7 @@ class VehicleDetailsController extends GetxController {
                 expense.date.year == fuelEntry.refuelDate.year &&
                 expense.date.month == fuelEntry.refuelDate.month &&
                 expense.date.day == fuelEntry.refuelDate.day &&
-                expense.category == 'Transportation' &&
+                (expense.category.toLowerCase() == 'transportation' || expense.category.toLowerCase() == 'transport') &&
                 expense.title.startsWith('Fuel -'));
             
             if (matchingExpense != null && matchingExpense.id != null) {

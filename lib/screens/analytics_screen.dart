@@ -257,6 +257,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ? 100.0
         : weeklyTotals.values.reduce((a, b) => a > b ? a : b) * 1.2;
 
+    // Ensure maxY is never 0 to avoid division by zero in horizontalInterval
+    final safeMaxY = maxY > 0 ? maxY : 100.0;
+
     final sortedEntries = weeklyTotals.entries.toList();
 
     return Column(
@@ -268,7 +271,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
-                maxY: maxY,
+                maxY: safeMaxY,
                 barTouchData: BarTouchData(
                   enabled: true,
                   touchTooltipData: BarTouchTooltipData(
@@ -325,7 +328,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: maxY / 5,
+                  horizontalInterval: safeMaxY / 5,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(color: Colors.grey[300], strokeWidth: 1);
                   },
@@ -378,6 +381,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ? 100.0
         : dailyTotals.values.reduce((a, b) => a > b ? a : b) * 1.2;
 
+    // Ensure maxY is never 0 to avoid division by zero in horizontalInterval
+    final safeMaxY = maxY > 0 ? maxY : 100.0;
+
     final sortedEntries = dailyTotals.entries.toList();
 
     return Column(
@@ -389,7 +395,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
-                maxY: maxY,
+                maxY: safeMaxY,
                 barTouchData: BarTouchData(
                   enabled: true,
                   touchTooltipData: BarTouchTooltipData(
@@ -446,7 +452,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: maxY / 5,
+                  horizontalInterval: safeMaxY / 5,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(color: Colors.grey[300], strokeWidth: 1);
                   },
@@ -499,6 +505,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         ? 100.0
         : monthlyTotals.values.reduce((a, b) => a > b ? a : b) * 1.2;
 
+    // Ensure maxY is never 0 to avoid division by zero in horizontalInterval
+    final safeMaxY = maxY > 0 ? maxY : 100.0;
+
     final sortedEntries = monthlyTotals.entries.toList();
 
     return Column(
@@ -510,7 +519,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
-                maxY: maxY,
+                maxY: safeMaxY,
                 barTouchData: BarTouchData(
                   enabled: true,
                   touchTooltipData: BarTouchTooltipData(
@@ -567,7 +576,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  horizontalInterval: maxY / 5,
+                  horizontalInterval: safeMaxY / 5,
                   getDrawingHorizontalLine: (value) {
                     return FlLine(color: Colors.grey[300], strokeWidth: 1);
                   },

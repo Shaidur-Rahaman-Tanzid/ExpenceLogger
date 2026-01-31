@@ -15,16 +15,20 @@ class ExpenseHistoryScreen extends StatefulWidget {
 
 class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
   final controller = Get.find<ExpenseController>();
-  List<Expense> _filteredExpenses = [];
 
   final TextEditingController _searchController = TextEditingController();
   DateTime? _startDate;
   DateTime? _endDate;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _filterExpenses();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
   }
 
   @override
@@ -33,42 +37,39 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
     super.dispose();
   }
 
-  void _filterExpenses() {
-    String searchQuery = _searchController.text.toLowerCase();
+  // Computed property that filters expenses reactively
+  List<Expense> get _filteredExpenses {
+    return controller.expenses.where((expense) {
+      // Only show expenses (positive amounts), not income
+      if (expense.amount <= 0) return false;
 
-    setState(() {
-      _filteredExpenses = controller.expenses.where((expense) {
-        // Only show expenses (positive amounts), not income
-        if (expense.amount <= 0) return false;
+      // Search filter
+      bool matchesSearch =
+          _searchQuery.isEmpty ||
+          expense.title.toLowerCase().contains(_searchQuery) ||
+          expense.category.toLowerCase().contains(_searchQuery);
 
-        // Search filter
-        bool matchesSearch =
-            searchQuery.isEmpty ||
-            expense.title.toLowerCase().contains(searchQuery) ||
-            expense.category.toLowerCase().contains(searchQuery);
+      // Date range filter
+      bool matchesDateRange = true;
+      if (_startDate != null && _endDate != null) {
+        final expenseDate = DateTime(
+          expense.date.year,
+          expense.date.month,
+          expense.date.day,
+        );
+        final start = DateTime(
+          _startDate!.year,
+          _startDate!.month,
+          _startDate!.day,
+        );
+        final end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
+        matchesDateRange =
+            expenseDate.isAfter(start.subtract(const Duration(days: 1))) &&
+            expenseDate.isBefore(end.add(const Duration(days: 1)));
+      }
 
-        // Date range filter
-        bool matchesDateRange = true;
-        if (_startDate != null && _endDate != null) {
-          final expenseDate = DateTime(
-            expense.date.year,
-            expense.date.month,
-            expense.date.day,
-          );
-          final start = DateTime(
-            _startDate!.year,
-            _startDate!.month,
-            _startDate!.day,
-          );
-          final end = DateTime(_endDate!.year, _endDate!.month, _endDate!.day);
-          matchesDateRange =
-              expenseDate.isAfter(start.subtract(const Duration(days: 1))) &&
-              expenseDate.isBefore(end.add(const Duration(days: 1)));
-        }
-
-        return matchesSearch && matchesDateRange;
-      }).toList();
-    });
+      return matchesSearch && matchesDateRange;
+    }).toList();
   }
 
   Future<void> _selectDateRange() async {
@@ -86,7 +87,6 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
         _startDate = picked.start;
         _endDate = picked.end;
       });
-      _filterExpenses();
     }
   }
 
@@ -95,7 +95,6 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
       _startDate = null;
       _endDate = null;
     });
-    _filterExpenses();
   }
 
   Future<void> _deleteExpense(Expense expense) async {
@@ -113,14 +112,14 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
               onPressed: () async {
                 // Re-insert the expense
                 await controller.addExpense(expense);
-                _filterExpenses();
+                // No need to call _filterExpenses - getter handles it
               },
             ),
           ),
         );
       }
 
-      _filterExpenses();
+      // No need to call _filterExpenses - getter handles it
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -211,7 +210,7 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
-                          _filterExpenses();
+                          // setState already called by listener
                         },
                       )
                     : null,
@@ -219,7 +218,7 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              onChanged: (value) => _filterExpenses(),
+              // onChanged not needed - listener handles it
             ),
           ),
 
@@ -388,11 +387,13 @@ class _ExpenseHistoryScreenState extends State<ExpenseHistoryScreen> {
                                 horizontal: 16,
                                 vertical: 8,
                               ),
-                              onTap: () {
-                                Get.to(
+                              onTap: () async {
+                                // Navigate and wait for result
+                                await Get.to(
                                   () => ExpenseDetailScreen(expense: expense),
                                   transition: Transition.rightToLeft,
                                 );
+                                // ExpenseController auto-updates, Obx will refresh UI
                               },
                               leading: CircleAvatar(
                                 backgroundColor: _getCategoryColor(
