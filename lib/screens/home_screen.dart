@@ -554,11 +554,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 horizontal: 16,
                                 vertical: 8,
                               ),
-                              onTap: () {
-                                Get.to(
+                              onTap: () async {
+                                // Navigate and wait for result
+                                await Get.to(
                                   () => ExpenseDetailScreen(expense: expense),
                                   transition: Transition.rightToLeft,
                                 );
+                                
+                                // ExpenseController has already been updated by edit/delete operations
+                                // The Obx widget will automatically refresh the UI
                               },
                               leading: CircleAvatar(
                                 backgroundColor: _getCategoryColor(

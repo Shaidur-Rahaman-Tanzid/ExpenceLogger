@@ -74,15 +74,43 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
     // Get the expense from arguments
     _expense = Get.arguments as Expense;
     
+    // Determine if it's income or expense
+    _isIncome = _expense.amount < 0;
+    
+    // Normalize category name (handle case sensitivity and variations)
+    String normalizedCategory = _expense.category.toLowerCase().trim();
+    
+    // Map common variations to standard categories
+    final categoryMap = {
+      'transportation': 'transport',
+      'food & dining': 'food',
+      'medical': 'healthcare',
+      'utilities': 'bills',
+      'fun': 'entertainment',
+    };
+    
+    // Apply mapping if exists
+    if (categoryMap.containsKey(normalizedCategory)) {
+      normalizedCategory = categoryMap[normalizedCategory]!;
+    }
+    
+    // Check if normalized category exists in the appropriate list
+    final targetList = _isIncome ? _incomeCategories : _categories;
+    if (targetList.contains(normalizedCategory)) {
+      _selectedCategory = normalizedCategory;
+    } else {
+      // If category not found, use default
+      _selectedCategory = _isIncome ? _incomeCategories[0] : _categories[0];
+      print('⚠️ Category "${_expense.category}" not found, using default: $_selectedCategory');
+    }
+    
     // Pre-fill the form with existing data
     _titleController.text = _expense.title;
     _amountController.text = _expense.amount.abs().toString();
     _noteController.text = _expense.note ?? '';
-    _selectedCategory = _expense.category;
     _selectedDate = _expense.date;
     _voiceNotePath = _expense.voiceNotePath;
     _imagePath = _expense.imagePath;
-    _isIncome = _expense.amount < 0;
   }
 
   Future<void> _initRecorder() async {
@@ -359,23 +387,14 @@ class _EditExpenseScreenState extends State<EditExpenseScreen> {
           imagePath: _imagePath,
         );
 
-        // Update using controller
+        // Update using controller (this already shows success/error snackbar)
         await controller.updateExpense(updatedExpense);
 
-        // Refresh expenses list
+        // Refresh expenses list to ensure UI updates
         await controller.fetchExpenses();
 
-        // Go back with success result
-        Get.back(result: true);
-
-        Get.snackbar(
-          'success'.tr,
-          'Expense updated successfully',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 2),
-        );
+        // Go back with success result and pass the updated expense
+        Get.back(result: updatedExpense);
       } catch (e) {
         Get.snackbar(
           'error'.tr,
