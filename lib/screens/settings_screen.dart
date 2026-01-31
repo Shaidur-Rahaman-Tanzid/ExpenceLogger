@@ -90,46 +90,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final expenses = await DatabaseHelper().getExpenses();
       final now = DateTime.now();
 
-      // Calculate weekly spending (this week)
+      // Calculate weekly spending (this week - from Monday to Sunday)
       final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
       final weekStart = DateTime(
         startOfWeek.year,
         startOfWeek.month,
         startOfWeek.day,
       );
+      // Week ends on Sunday (7 days from Monday)
+      final weekEnd = weekStart.add(const Duration(days: 7));
 
-      _weeklySpent = expenses
+      final weeklyExpenses = expenses
           .where((expense) {
             final expenseDate = DateTime(
               expense.date.year,
               expense.date.month,
               expense.date.day,
             );
-            return expenseDate.isAfter(
-              weekStart.subtract(const Duration(days: 1)),
-            );
+            // Include only positive amounts (actual spending, not income)
+            // Income is stored as negative values and should not count toward budget
+            return expense.amount > 0 &&
+                   (expenseDate.isAtSameMomentAs(weekStart) || expenseDate.isAfter(weekStart)) &&
+                   expenseDate.isBefore(weekEnd);
           })
+          .toList();
+
+      _weeklySpent = weeklyExpenses
           .fold(0.0, (sum, expense) => sum + expense.amount);
+
+      debugPrint('📊 Weekly Budget Debug:');
+      debugPrint('   Today: ${DateTime.now()}');
+      debugPrint('   Week Start (Monday): $weekStart');
+      debugPrint('   Week End (Sunday): $weekEnd');
+      debugPrint('   Total Expenses in DB: ${expenses.length}');
+      debugPrint('   Weekly Expenses Count: ${weeklyExpenses.length}');
+      debugPrint('   Weekly Spent: $_weeklySpent');
+      debugPrint('   Weekly Budget: $_weeklyBudget');
+      for (var exp in weeklyExpenses) {
+        debugPrint('   ✓ ${exp.title}: ৳${exp.amount} on ${exp.date}');
+      }
+      // Show expenses NOT in this week for debugging
+      final notInWeek = expenses.where((exp) {
+        final expDate = DateTime(exp.date.year, exp.date.month, exp.date.day);
+        return !(expDate.isAtSameMomentAs(weekStart) || expDate.isAfter(weekStart)) ||
+               expDate.isAtSameMomentAs(weekEnd) || expDate.isAfter(weekEnd);
+      }).toList();
+      if (notInWeek.isNotEmpty) {
+        debugPrint('   Expenses NOT this week:');
+        for (var exp in notInWeek.take(5)) {
+          debugPrint('   ✗ ${exp.title}: ৳${exp.amount} on ${exp.date}');
+        }
+      }
 
       // Calculate monthly spending (this month)
       final monthStart = DateTime(now.year, now.month, 1);
+      final nextMonthStart = now.month == 12
+          ? DateTime(now.year + 1, 1, 1)
+          : DateTime(now.year, now.month + 1, 1);
 
-      _monthlySpent = expenses
+      final monthlyExpenses = expenses
           .where((expense) {
             final expenseDate = DateTime(
               expense.date.year,
               expense.date.month,
               expense.date.day,
             );
-            return expenseDate.isAfter(
-              monthStart.subtract(const Duration(days: 1)),
-            );
+            // Include only positive amounts (actual spending, not income)
+            // Income is stored as negative values and should not count toward budget
+            return expense.amount > 0 &&
+                   (expenseDate.isAtSameMomentAs(monthStart) || expenseDate.isAfter(monthStart)) &&
+                   expenseDate.isBefore(nextMonthStart);
           })
+          .toList();
+
+      _monthlySpent = monthlyExpenses
           .fold(0.0, (sum, expense) => sum + expense.amount);
+
+      debugPrint('📊 Monthly Budget Debug:');
+      debugPrint('   Month Start: $monthStart');
+      debugPrint('   Monthly Expenses Count: ${monthlyExpenses.length}');
+      debugPrint('   Monthly Spent: $_monthlySpent');
+      debugPrint('   Monthly Budget: $_monthlyBudget');
 
       setState(() {});
     } catch (e) {
-      debugPrint('Error calculating spending: $e');
+      debugPrint('❌ Error calculating spending: $e');
     }
   }
 

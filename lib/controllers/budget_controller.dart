@@ -156,6 +156,11 @@ class BudgetController extends GetxController {
       monthlyBudget.value = prefs.getDouble(_monthlyBudgetKey) ?? 0.0;
       notificationsEnabled.value = prefs.getBool(_notificationsKey) ?? false;
 
+      print('💰 BudgetController - loadBudgetSettings():');
+      print('   Weekly Budget: ${weeklyBudget.value}');
+      print('   Monthly Budget: ${monthlyBudget.value}');
+      print('   Notifications Enabled: ${notificationsEnabled.value}');
+
       await calculateSpending();
     } catch (e) {
       print('Error loading budget settings: $e');
@@ -170,42 +175,59 @@ class BudgetController extends GetxController {
       final expenses = await DatabaseHelper().getExpenses();
       final now = DateTime.now();
 
-      // Calculate weekly spending (this week)
+      // Calculate weekly spending (this week - from Monday to Sunday)
       final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
       final weekStart = DateTime(
         startOfWeek.year,
         startOfWeek.month,
         startOfWeek.day,
       );
+      // Week ends on Sunday (7 days from Monday)
+      final weekEnd = weekStart.add(const Duration(days: 7));
 
       weeklySpent.value = expenses
           .where((expense) {
+            // Only count expenses (positive amounts), not income (negative amounts)
+            if (expense.amount <= 0) return false;
+
             final expenseDate = DateTime(
               expense.date.year,
               expense.date.month,
               expense.date.day,
             );
-            return expenseDate.isAfter(
-              weekStart.subtract(const Duration(days: 1)),
-            );
+            // Include expenses from Monday to Sunday of this week
+            return (expenseDate.isAtSameMomentAs(weekStart) || expenseDate.isAfter(weekStart)) &&
+                   expenseDate.isBefore(weekEnd);
           })
           .fold(0.0, (sum, expense) => sum + expense.amount);
 
       // Calculate monthly spending (this month)
       final monthStart = DateTime(now.year, now.month, 1);
+      final nextMonthStart = monthStart.month == 12
+          ? DateTime(monthStart.year + 1, 1, 1)
+          : DateTime(monthStart.year, monthStart.month + 1, 1);
 
       monthlySpent.value = expenses
           .where((expense) {
+            // Only count expenses (positive amounts), not income (negative amounts)
+            if (expense.amount <= 0) return false;
+
             final expenseDate = DateTime(
               expense.date.year,
               expense.date.month,
               expense.date.day,
             );
-            return expenseDate.isAfter(
-              monthStart.subtract(const Duration(days: 1)),
-            );
+            // Include expenses from 1st of this month to last day of this month
+            return (expenseDate.isAtSameMomentAs(monthStart) || expenseDate.isAfter(monthStart)) &&
+                   expenseDate.isBefore(nextMonthStart);
           })
           .fold(0.0, (sum, expense) => sum + expense.amount);
+
+      print('📊 BudgetController - calculateSpending():');
+      print('   Weekly Spent: ${weeklySpent.value} (Budget: ${weeklyBudget.value})');
+      print('   Weekly Exceeded: $isWeeklyBudgetExceeded');
+      print('   Monthly Spent: ${monthlySpent.value} (Budget: ${monthlyBudget.value})');
+      print('   Monthly Exceeded: $isMonthlyBudgetExceeded');
     } catch (e) {
       print('Error calculating spending: $e');
     }

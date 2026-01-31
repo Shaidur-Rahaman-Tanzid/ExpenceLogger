@@ -55,7 +55,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _checkBudgetAlerts() {
     // Only show alerts if this is the first load and controller says we should show them
-    if (!budgetController.shouldShowAlerts) return;
+    if (!budgetController.shouldShowAlerts) {
+      print('🔔 _checkBudgetAlerts: shouldShowAlerts = false, skipping');
+      return;
+    }
+
+    print('🔔 _checkBudgetAlerts: shouldShowAlerts = true, checking alerts...');
 
     // Delay to ensure data is loaded
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -64,10 +69,17 @@ class _HomeScreenState extends State<HomeScreen> {
       // Mark that we've shown initial alerts
       budgetController.markInitialAlertsShown();
 
+      print('   Notifications Enabled: ${budgetController.notificationsEnabled.value}');
+      print('   Weekly Exceeded: ${budgetController.isWeeklyBudgetExceeded}');
+      print('   Weekly Alert Shown: ${budgetController.hasShownWeeklyAlert.value}');
+      print('   Monthly Exceeded: ${budgetController.isMonthlyBudgetExceeded}');
+      print('   Monthly Alert Shown: ${budgetController.hasShownMonthlyAlert.value}');
+
       // Check weekly budget
       if (budgetController.notificationsEnabled.value &&
           budgetController.isWeeklyBudgetExceeded &&
           !budgetController.hasShownWeeklyAlert.value) {
+        print('   ✅ Showing Weekly Budget Alert');
         budgetController.markWeeklyAlertShown();
         _showBudgetAlert(
           'Weekly Budget Exceeded!',
@@ -81,6 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (budgetController.notificationsEnabled.value &&
           budgetController.isMonthlyBudgetExceeded &&
           !budgetController.hasShownMonthlyAlert.value) {
+        print('   ✅ Showing Monthly Budget Alert');
         budgetController.markMonthlyAlertShown();
         _showBudgetAlert(
           'Monthly Budget Exceeded!',

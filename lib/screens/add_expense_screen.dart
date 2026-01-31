@@ -329,6 +329,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
         // Parse amount and make it negative if it's income
         double amount = double.parse(_amountController.text.trim());
+        
+        // Safety check: ensure amount is positive before processing
+        if (amount <= 0) {
+          Get.snackbar(
+            'error'.tr,
+            'please_enter_valid_positive_amount'.tr,
+            backgroundColor: Colors.red,
+          );
+          setState(() {
+            _isLoading = false;
+          });
+          return;
+        }
+        
         if (_isIncome) {
           amount = -amount.abs(); // Negative for income
         }
@@ -538,9 +552,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
+                  signed: false, // Prevent negative numbers
                 ),
                 inputFormatters: [
+                  // Only allow positive numbers with up to 2 decimal places
                   FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                  // Additional validation to prevent any negative values
+                  _PositiveNumberFormatter(),
                 ],
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
@@ -548,7 +566,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   }
                   final amount = double.tryParse(value.trim());
                   if (amount == null || amount <= 0) {
-                    return 'valid_amount_required'.tr;
+                    return 'please_enter_valid_positive_amount'.tr;
                   }
                   return null;
                 },
@@ -867,5 +885,20 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         ),
       ),
     );
+  }
+}
+
+/// Custom formatter to ensure only positive numbers are accepted
+class _PositiveNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // If the new value contains a minus sign, reject it
+    if (newValue.text.contains('-')) {
+      return oldValue;
+    }
+    return newValue;
   }
 }
